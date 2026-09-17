@@ -145,7 +145,7 @@ resource "azurerm_linux_virtual_machine" "spoke1_vm" {
   name                = "vm-spoke1"
   resource_group_name = azurerm_resource_group.hub_spoke.name
   location            = azurerm_resource_group.hub_spoke.location
-  size                = "Standard_B1s"
+  size                = "Standard_B2pls_v2"
   admin_username      = "azureuser"
   network_interface_ids = [
     azurerm_network_interface.spoke1_vm.id,
@@ -153,7 +153,7 @@ resource "azurerm_linux_virtual_machine" "spoke1_vm" {
 
   admin_ssh_key {
     username   = "azureuser"
-    public_key = file("/home/clinej/.ssh/id_ed25519.pub")
+    public_key = file(pathexpand("~/.ssh/id_ed25519.pub"))
   }
 
   os_disk {
@@ -173,7 +173,7 @@ resource "azurerm_linux_virtual_machine" "spoke2_vm" {
   name                = "vm-spoke2"
   resource_group_name = azurerm_resource_group.hub_spoke.name
   location            = azurerm_resource_group.hub_spoke.location
-  size                = "Standard_B1s"
+  size                = "Standard_B2pls_v2"
   admin_username      = "azureuser"
   network_interface_ids = [
     azurerm_network_interface.spoke2_vm.id,
@@ -181,7 +181,7 @@ resource "azurerm_linux_virtual_machine" "spoke2_vm" {
 
   admin_ssh_key {
     username   = "azureuser"
-    public_key = file("/home/clinej/.ssh/id_ed25519.pub")
+    public_key = file(pathexpand("~/.ssh/id_ed25519.pub"))
   }
 
   os_disk {
