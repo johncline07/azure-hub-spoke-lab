@@ -11,7 +11,7 @@ I wanted to build a hub-and-spoke virtual network architecture in Azure that mim
 
 ## Architecture:
 
-I created three separate VNets. The hub VNet uses the 10.0.0.0/16 address space and contains a `10.0.1.0/24` subnet for hub services. Spoke 1 uses `10.1.0.0/16` with a `10.1.1.0/24` workload subnet. Spoke 2 uses `10.2.0.0/16` with a `10.2.1.0/24` workload subnet. I configure VNet peering the hub and each spoke in the following allowed peering configuration: Hub --> Spoke1: Spoke1 --> Hub: Hub --> Spoke 2: Spoke 2 --> Hub. 
+I created three separate VNets. The hub VNet uses the 10.0.0.0/16 address space and contains a `10.0.1.0/24` subnet for hub services. Spoke 1 uses `10.1.0.0/16` with a `10.1.1.0/24` workload subnet. Spoke 2 uses `10.2.0.0/16` with a `10.2.1.0/24` workload subnet. I configured VNet peering between the hub and each spoke in both directions. 
 
 ```mermaid
 flowchart TD
@@ -21,12 +21,11 @@ flowchart TD
 
     Hub <--> Spoke1
     Hub <--> Spoke2
-```
+```mermaid
 
-I created NSGs and associated them with each spoke workload subnet. At this point they use Azure’s default NSG rules. Spoke-to-spoke transit is not currently available because Azure VNet peering is non-transitive; later in the project I plan to control this traffic more deliberately with NSG rules and routing.> 
+I created NSGs and associated them with each spoke workload subnet. At this point they use Azure’s default NSG rules. Spoke-to-spoke transit is not currently available because Azure VNet peering is non-transitive; later in the project I plan to control this traffic more deliberately with NSG rules and routing. 
 
-**Note:** VNet peering is non-transitive. Spoke 1 cannot automatically route
-> through the hub to Spoke 2.
+>**Note:** VNet peering is non-transitive. Spoke 1 cannot automatically route through the hub to Spoke 2.
 
 ## Addressing Plan
 
@@ -54,7 +53,7 @@ I created NSGs and associated them with each spoke workload subnet. At this poin
 
 ## Remote State: 
 
-I did much of the work on two different machines. This presented an issue with repository and local state. Local state is good for small projects/experiments such as this, but I wanted experience with Git CI/CD actions and the opportunity to store the Terraform state file remotely. The state file is Terraforms brain or memory, keeping track of your infrastructure. It allows Terraform to know what to create, update, or delete based on your declared infrastructure configuration. When you run Terraform commands such as `terraform plan` or `terraform apply`, **terraform** references the state file to determine what is already created, what needs to be destroyed or changed by keeping track of resources created, resource IDs and metadata, relationships and dependencies between resources, and outputs of resources. 
+I did much of the work on two different machines. This presented an issue with repository and local state. Local state is good for small projects/experiments such as this, but I wanted experience with Git CI/CD actions and the opportunity to store the Terraform state file remotely. The state file is Terraform's brain or memory, keeping track of your infrastructure. It allows Terraform to know what to create, update, or delete based on your declared infrastructure configuration. When you run Terraform commands such as `terraform plan` or `terraform apply`, **terraform** references the state file to determine what is already created, what needs to be destroyed or changed by keeping track of resources created, resource IDs and metadata, relationships and dependencies between resources, and outputs of resources. 
 
 Local state works well for small experiments, but it becomes awkward when moving between machines or collaborating with other people because the authoritative state file exists on one filesystem. A remote backend gives each authorized machine access to the same state and supports state locking during Terraform operations.
 
