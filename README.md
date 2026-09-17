@@ -21,7 +21,7 @@ flowchart TD
 
     Hub <--> Spoke1
     Hub <--> Spoke2
-```mermaid
+```
 
 I created NSGs and associated them with each spoke workload subnet. At this point they use Azure’s default NSG rules. Spoke-to-spoke transit is not currently available because Azure VNet peering is non-transitive; later in the project I plan to control this traffic more deliberately with NSG rules and routing. 
 
