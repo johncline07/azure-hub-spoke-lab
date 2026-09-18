@@ -130,7 +130,7 @@ Takeaway: Git synchronizes the configuration, but it does not synchronize Terraf
 
 ### Portable SSH Key Paths
 
-3. The original VM configuration referenced a hard-coded public key path from one WSL machine instance. WHen I moved the project to the second system with the use of remote state, Terraform failed because that path did not exist. I replaced the absolute path with `pathexpand("~/.ssh/id_ed25519.pub")`, allowing each machine to resolve the key from its own home directory. 
+The original VM configuration referenced a hard-coded public key path from one WSL machine instance. WHen I moved the project to the second system with the use of remote state, Terraform failed because that path did not exist. I replaced the absolute path with `pathexpand("~/.ssh/id_ed25519.pub")`, allowing each machine to resolve the key from its own home directory. 
 
 Takeway: Infrastructure code should avoid machine-specific paths when the project is intended to be portable. 
 
