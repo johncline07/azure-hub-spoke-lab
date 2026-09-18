@@ -111,6 +111,11 @@ Github carries the code in a repository, keeping track of any changes to the cod
 
 ## Issues and Lessons Learned
 
+1. One of the biggest takeaways from this project was the function of the tfstate file. I wrote about that extensivly above. If I'm honest, in my first terraform/azure project, I didn't notice the function of the state file. I operated that instance locally so I didn't notice, or even pay attention to, the state file--that project was mostly a first diving into Terraform. In this project, with the need of moving from one machine to another, I was forced to pay attention to it. So I dove in. I read profesional writing. I paid attention behavior. I moved from local to remote. I'm certain I still have plenty, if not all, to learn, but, I learned a lot in just changing the location of the tfstate file. This was a big win in my mind here. 
+
+2. Another takeaway, is archictecture vs. implementation. This project helped me understand how to implement a hub-and-spoke network. However, following an established architecture is different from independently selecting that architecture. I can now explain how the VNets, subnets, peering connections, and security controls fit together, but I am continuing to develop my understanding of when hub-and-spoke is preferable to simpler alternatives and what tradeoffs justify its added complexity. 
+
+
 ### Terraform State Across Multiple Machines
 
 ...
