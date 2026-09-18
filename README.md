@@ -113,22 +113,16 @@ Github carries the code in a repository, keeping track of any changes to the cod
 
 ## Issues and Lessons Learned
 
-## Overall takeaways
-
-1. One of the biggest takeaways from this project was the function of the tfstate file. I wrote about that extensivly above. If I'm honest, in my first terraform/azure project, I didn't notice the function of the state file. I operated that instance locally so I didn't notice, or even pay attention to, the state file--that project was mostly a first diving into Terraform. In this project, with the need of moving from one machine to another, I was forced to pay attention to it. So I dove in. I read profesional writing. I paid attention behavior. I moved from local to remote. I'm certain I still have plenty, if not all, to learn, but, I learned a lot in just changing the location of the tfstate file. This was a big win in my mind here. 
-
-2. Upon initiating this project, I understood that hub-and-spoke networks were common enterprise solutions but I did not understand why that architecture is sometimes optimal over others. I imagine that sort of expertise comes with several years of experience making decisions such as that. This project helped me understand how to implement a hub-and-spoke network. However, following an established architecture is different from independently selecting that architecture. I can now explain how the VNets, subnets, peering connections, and security controls fit together, but I am continuing to develop my understanding of when hub-and-spoke is preferable to simpler alternatives and what tradeoffs justify its added complexity.
+### Architecture
+Upon initiating this project, I understood that hub-and-spoke networks were common enterprise solutions but I did not understand why that architecture is sometimes optimal over others. I imagine that sort of expertise comes with several years of experience making decisions such as that. This project helped me understand how to implement a hub-and-spoke network. However, following an established architecture is different from independently selecting that architecture. I can now explain how the VNets, subnets, peering connections, and security controls fit together, but I am continuing to develop my understanding of when hub-and-spoke is preferable to simpler alternatives and what tradeoffs justify its added complexity.
 
 Takeaway: by placing the shared-services subnet in the hub VNet, I observed non-transitory vnet peering. The spoke VNets can reach shared resources through the hub. Centralizing shared services reduces duplication and creates a common point for security and routing controls. 
 
-3. THe original VM configuration referenced a hard-coded public key path from one WSL machine instance. WHen I moved the project to the second system with the use of remote state, Terraform failed because that path did not exist. I replaced the absolute path with `pathexpand("~/.ssh/id_ed25519.pub")`, allowing each machine to resolve the key from its own home directory. 
-
-Takeway: Infrastructure code should avoid machine-specific paths when the project is intended to be portable. 
-
-
 ### Terraform State Across Multiple Machines
 
-**Note** Takeaway: Git synchronizes the configuration, but it does not synchronize Terraform state. 
+One of the biggest takeaways from this project was the function of the tfstate file. I wrote about that extensivly above. If I'm honest, in my first terraform/azure project, I didn't notice the function of the state file. I operated that instance locally so I didn't notice, or even pay attention to, the state file--that project was mostly a first diving into Terraform. In this project, with the need of moving from one machine to another, I was forced to pay attention to it. So I dove in. I read profesional writing. I paid attention behavior. I moved from local to remote. I'm certain I still have plenty, if not all, to learn, but, I learned a lot in just changing the location of the tfstate file. This was a big win in my mind here. 
+
+Takeaway: Git synchronizes the configuration, but it does not synchronize Terraform state. 
 
 ### Azure Storage RBAC
 
@@ -136,12 +130,10 @@ Takeway: Infrastructure code should avoid machine-specific paths when the projec
 
 ### Portable SSH Key Paths
 
-...
+3. The original VM configuration referenced a hard-coded public key path from one WSL machine instance. WHen I moved the project to the second system with the use of remote state, Terraform failed because that path did not exist. I replaced the absolute path with `pathexpand("~/.ssh/id_ed25519.pub")`, allowing each machine to resolve the key from its own home directory. 
+
+Takeway: Infrastructure code should avoid machine-specific paths when the project is intended to be portable. 
 
 ### VM SKU and Architecture Compatibility
 
 Observed: a VM SKU size can be available in a region but still be incompatible with the selected image (`i.e. a VM that only supports x86 CPU architecture and an Arm64 variant image`)
-
-### Azure vCPU Quotas
-
-...
