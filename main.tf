@@ -145,7 +145,7 @@ resource "azurerm_linux_virtual_machine" "spoke1_vm" {
   name                = "vm-spoke1"
   resource_group_name = azurerm_resource_group.hub_spoke.name
   location            = azurerm_resource_group.hub_spoke.location
-  size                = "Standard_B2pls_v2"
+  size                = "Standard_D2pls_v5"
   admin_username      = "azureuser"
   network_interface_ids = [
     azurerm_network_interface.spoke1_vm.id,
@@ -163,8 +163,8 @@ resource "azurerm_linux_virtual_machine" "spoke1_vm" {
 
   source_image_reference {
     publisher = "Canonical"
-    offer     = "0001-com-ubuntu-server-jammy"
-    sku       = "22_04-lts-gen2"
+    offer     = "ubuntu-24_04-lts"
+    sku       = "server-arm64"
     version   = "latest"
   }
 }
@@ -173,7 +173,7 @@ resource "azurerm_linux_virtual_machine" "spoke2_vm" {
   name                = "vm-spoke2"
   resource_group_name = azurerm_resource_group.hub_spoke.name
   location            = azurerm_resource_group.hub_spoke.location
-  size                = "Standard_B2pls_v2"
+  size                = "Standard_D2pls_v5"
   admin_username      = "azureuser"
   network_interface_ids = [
     azurerm_network_interface.spoke2_vm.id,
@@ -191,8 +191,8 @@ resource "azurerm_linux_virtual_machine" "spoke2_vm" {
 
   source_image_reference {
     publisher = "Canonical"
-    offer     = "0001-com-ubuntu-server-jammy"
-    sku       = "22_04-lts-gen2"
+    offer     = "ubuntu-24_04-lts"
+    sku       = "server-arm64"
     version   = "latest"
   }
 }
