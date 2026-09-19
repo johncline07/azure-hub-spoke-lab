@@ -107,10 +107,6 @@ Github carries the code in a repository, keeping track of any changes to the cod
 - Centralized traffic inspection
 - Route control between spokes
 
-> **Current limitation:** Test VM deployment is temporarily blocked while
-> evaluating VM SKU, CPU architecture, and regional quota availability.
-
-
 ## Issues and Lessons Learned
 
 ### Architecture
