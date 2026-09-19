@@ -141,11 +141,23 @@ resource "azurerm_network_interface" "spoke2_vm" {
   }
 }
 
+resource "azurerm_network_interface" "jumpbox_vm" {
+  name                = "nic-jumpbox-vm"
+  location            = azurerm_resource_group.hub_spoke.location
+  resource_group_name = azurerm_resource_group.hub_spoke.name
+
+  ip_configuration {
+    name                          = "internal"
+    subnet_id                     = azurerm_subnet.hub_services.id
+    private_ip_address_allocation = "Dynamic"
+  }
+}
+
 resource "azurerm_linux_virtual_machine" "spoke1_vm" {
   name                = "vm-spoke1"
   resource_group_name = azurerm_resource_group.hub_spoke.name
   location            = azurerm_resource_group.hub_spoke.location
-  size                = "Standard_D2pls_v5"
+  size                = "Standard_D2alds_v7"
   admin_username      = "azureuser"
   network_interface_ids = [
     azurerm_network_interface.spoke1_vm.id,
@@ -163,8 +175,8 @@ resource "azurerm_linux_virtual_machine" "spoke1_vm" {
 
   source_image_reference {
     publisher = "Canonical"
-    offer     = "ubuntu-24_04-lts"
-    sku       = "server-arm64"
+    offer     = "0001-com-ubuntu-server-jammy"
+    sku       = "22_04-lts-gen2"
     version   = "latest"
   }
 }
@@ -173,7 +185,7 @@ resource "azurerm_linux_virtual_machine" "spoke2_vm" {
   name                = "vm-spoke2"
   resource_group_name = azurerm_resource_group.hub_spoke.name
   location            = azurerm_resource_group.hub_spoke.location
-  size                = "Standard_D2pls_v5"
+  size                = "Standard_D2alds_v7"
   admin_username      = "azureuser"
   network_interface_ids = [
     azurerm_network_interface.spoke2_vm.id,
@@ -191,8 +203,36 @@ resource "azurerm_linux_virtual_machine" "spoke2_vm" {
 
   source_image_reference {
     publisher = "Canonical"
-    offer     = "ubuntu-24_04-lts"
-    sku       = "server-arm64"
+    offer     = "0001-com-ubuntu-server-jammy"
+    sku       = "22_04-lts-gen2"
+    version   = "latest"
+  }
+}
+
+resource "azurerm_linux_virtual_machine" "jumpbox_vm" {
+  name                = "jumpbox-vm"
+  resource_group_name = azurerm_resource_group.hub_spoke.name
+  location            = azurerm_resource_group.hub_spoke.location
+  size                = "Standard_D2alds_v7"
+  admin_username      = "azureuser"
+  network_interface_ids = [
+    azurerm_network_interface.jumpbox_vm.id,
+  ]
+
+  admin_ssh_key {
+    username   = "azureuser"
+    public_key = file(pathexpand("~/.ssh/id_ed25519.pub"))
+  }
+
+  os_disk {
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+  }
+
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "0001-com-ubuntu-server-jammy"
+    sku       = "22_04-lts-gen2"
     version   = "latest"
   }
 }

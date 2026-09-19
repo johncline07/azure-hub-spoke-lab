@@ -136,4 +136,53 @@ Takeway: Infrastructure code should avoid machine-specific paths when the projec
 
 ### VM SKU and Architecture Compatibility
 
-Observed: a VM SKU size can be available in a region but still be incompatible with the selected image (`i.e. a VM that only supports x86 CPU architecture and an Arm64 variant image`)
+Test Linux VMs were added to each spoke to validate routing, security, and connectivity behavior. A separate jumpbox VM was deployed in the hub to provide a centralized management point without exposing the spoke workloads directly.
+
+| VM | VNet | Subnet | Private IP | Role |
+|---|---|---|---|---|
+| `vm-spoke1` | `vnet-spoke1` | `snet-spoke1-workload` | `10.1.1.4` | Workload/test VM |
+| `vm-spoke2` | `vnet-spoke2` | `snet-spoke2-workload` | `10.2.1.4` | Workload/test VM |
+| `jumpbox-vm` | `vnet-hub` | `snet-hub-services` | `10.0.1.4` | Management/jump host |
+
+**Configuration**
+Linux distribution / image
+x64 architecture
+VM size finally selected
+SSH key authentication
+Dynamic private IP assignment
+No public IP on spoke VMs
+Jumpbox access method planned / current
+
+**Deployment Issues**
+This is where the messy stuff belongs:
+
+Original B-series SKU unavailable
+Arm64 VM vs x64 image mismatch
+Bpsv2 quota = 0
+x64 B-series existed but was NotAvailableForSubscription
+Queried D-series SKUs
+Selected a D-series family with quota and x64 support
+Successfully deployed both spoke VMs and jumpbox
+
+**Validation**
+Validation
+Confirmed VM creation
+Confirmed private IPs
+Confirmed subnet placement
+Confirmed jumpbox landed in hub
+Traffic testing still pending
+
+**Cost Management**
+Cost Management
+VMs deallocated when not in use
+Why az vm deallocate is used instead of only stopping
+Persistent resources that may still incur small charges
+
+**Next Steps**
+Next Steps
+Add/confirm jumpbox access path
+SSH to jumpbox
+Test hub-to-spoke connectivity
+Test spoke-to-spoke behavior
+Add custom NSG rules
+Add UDRs / NVA later
