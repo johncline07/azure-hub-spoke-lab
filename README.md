@@ -110,48 +110,25 @@ Github carries the code in a repository, keeping track of any changes to the cod
 
 ### Configuration
 
-- Linux distribution / image
+- Ubuntu 22.04 LTS Generation 2 Linux (0001-com-ubuntu-server-jammy, 22_04-lts-gen2)
 - x64 architecture
-- VM size finally selected
+- Standard_D2alds_v7
 - SSH key authentication
 - Dynamic private IP assignment
 - No public IP on spoke VMs
 - Jumpbox access method
 
-### Original B-series SKU unavailable
-
-Arm64 VM vs x64 image mismatch
-Bpsv2 quota = 0
-x64 B-series existed but was NotAvailableForSubscription
-Queried D-series SKUs
-Selected a D-series family with quota and x64 support
-Successfully deployed both spoke VMs and jumpbox
-
-### Validation
-
-Validation
-Confirmed VM creation
-Confirmed private IPs
-Confirmed subnet placement
-Confirmed jumpbox landed in hub
-Traffic testing still pending
-
 ### Cost Management
 
-Cost Management
-VMs deallocated when not in use
-Why az vm deallocate is used instead of only stopping
-Persistent resources that may still incur small charges
+A stopped Azure virtual machine keeps its physical hardware reserved and continues billing for compute costs. On the other hand, deallocating a virtual machine releases the hardware and stops compute billing entirely. For cost management I am deallocating each VM when not testing/in-use.
 
 ### Next Steps
 
-Next Steps
-Add/confirm jumpbox access path
-SSH to jumpbox
-Test hub-to-spoke connectivity
-Test spoke-to-spoke behavior
-Add custom NSG rules
-Add UDRs / NVA later
+- SSH to jumpbox
+- Test hub-to-spoke connectivity
+- Test spoke-to-spoke behavior
+- Add custom NSG rules
+- Add UDRs / NVA later
 
 ## Issues and Lessons Learned
 
@@ -201,3 +178,12 @@ I solved this by defining the VM SSH public key as a Terraform variable and stor
 
 ### Deployment Issues
 This is where the messy stuff belongs: 
+
+#### Original B-series SKU unavailable
+
+Arm64 VM vs x64 image mismatch
+Bpsv2 quota = 0
+x64 B-series existed but was NotAvailableForSubscription
+Queried D-series SKUs
+Selected a D-series family with quota and x64 support
+Successfully deployed both spoke VMs and jumpbox
