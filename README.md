@@ -49,7 +49,7 @@ I created NSGs and associated them with each spoke workload subnet. At this poin
 - [x] Hub-to-spoke VNet peering
 - [x] Network Security Groups
 - [x] NSG/subnet associations
-- [ ] Linux test VMs
+- [x] Linux test VMs
 - [ ] User-defined routes
 - [ ] Network virtual appliance
 
@@ -107,6 +107,17 @@ Github carries the code in a repository, keeping track of any changes to the cod
 - Centralized traffic inspection
 - Route control between spokes
 
+## Virtual Machine Configuration
+
+### Configuration
+- Linux distribution / image
+- x64 architecture
+- VM size finally selected
+- SSH key authentication
+- Dynamic private IP assignment
+- No public IP on spoke VMs
+- Jumpbox access method
+
 ## Issues and Lessons Learned
 
 ### Architecture
@@ -150,15 +161,8 @@ I solved this by defining the VM SSH public key as a Terraform variable and stor
 
 **Takeaway:** Making a file path portable is not enough if the underlying value is still machine-specific. 
 
-**Configuration**
-Linux distribution / image
-x64 architecture
-VM size finally selected
-SSH key authentication
-Dynamic private IP assignment
-No public IP on spoke VMs
-Jumpbox access method planned / current
 
+## Needed addtions***
 **Deployment Issues**
 This is where the messy stuff belongs:
 
