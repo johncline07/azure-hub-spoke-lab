@@ -60,7 +60,7 @@ Local state works well for small experiments, but it becomes awkward when moving
 
 In this project I created a separate Azure resource group, storage account, and tfstate blob container using Azure CLI. I then configured the Terraform azurerm backend and migrated the original local state into Azure Storage.
 
-### Multi-Machine Workflow
+## Multi-Machine Workflow
 
 #### Machine A
 
@@ -118,9 +118,44 @@ Github carries the code in a repository, keeping track of any changes to the cod
 - No public IP on spoke VMs
 - Jumpbox access method
 
+### Original B-series SKU unavailable
+
+Arm64 VM vs x64 image mismatch
+Bpsv2 quota = 0
+x64 B-series existed but was NotAvailableForSubscription
+Queried D-series SKUs
+Selected a D-series family with quota and x64 support
+Successfully deployed both spoke VMs and jumpbox
+
+### Validation
+
+Validation
+Confirmed VM creation
+Confirmed private IPs
+Confirmed subnet placement
+Confirmed jumpbox landed in hub
+Traffic testing still pending
+
+### Cost Management
+
+Cost Management
+VMs deallocated when not in use
+Why az vm deallocate is used instead of only stopping
+Persistent resources that may still incur small charges
+
+### Next Steps
+
+Next Steps
+Add/confirm jumpbox access path
+SSH to jumpbox
+Test hub-to-spoke connectivity
+Test spoke-to-spoke behavior
+Add custom NSG rules
+Add UDRs / NVA later
+
 ## Issues and Lessons Learned
 
-### Architecture
+### Architecture Issues
 
 Upon initiating this project, I understood that hub-and-spoke networks were common enterprise solutions but I did not understand why that architecture is sometimes optimal over others. I imagine that sort of expertise comes with several years of experience making decisions such as that. This project helped me understand how to implement a hub-and-spoke network. However, following an established architecture is different from independently selecting that architecture. I can now explain how the VNets, subnets, peering connections, and security controls fit together, but I am continuing to develop my understanding of when hub-and-spoke is preferable to simpler alternatives and what tradeoffs justify its added complexity.
 
@@ -152,7 +187,7 @@ Test Linux VMs were added to each spoke to validate routing, security, and conne
 | `vm-spoke2` | `vnet-spoke2` | `snet-spoke2-workload` | `10.2.1.4` | Workload/test VM |
 | `jumpbox-vm` | `vnet-hub` | `snet-hub-services` | `10.0.1.4` | Management/jump host |
 
-### Machine-Specific SSH Keys and Terraform Portability
+### Physical Machine-Specific SSH Keys and Terraform Portability
 
 Prior to creating the VMs, using pathexpand("~/.ssh/id_ed25519.pub") solved the SSH key path problem and made the project more portable across machines. However, each machine still used its own SSH public key.
 
@@ -162,38 +197,7 @@ I solved this by defining the VM SSH public key as a Terraform variable and stor
 
 **Takeaway:** Making a file path portable is not enough if the underlying value is still machine-specific.
 
-## Needed additions
+## Virtual Machine Deployment Issues
 
-**Deployment Issues**
-This is where the messy stuff belongs:
-
-Original B-series SKU unavailable
-Arm64 VM vs x64 image mismatch
-Bpsv2 quota = 0
-x64 B-series existed but was NotAvailableForSubscription
-Queried D-series SKUs
-Selected a D-series family with quota and x64 support
-Successfully deployed both spoke VMs and jumpbox
-
-**Validation**
-Validation
-Confirmed VM creation
-Confirmed private IPs
-Confirmed subnet placement
-Confirmed jumpbox landed in hub
-Traffic testing still pending
-
-**Cost Management**
-Cost Management
-VMs deallocated when not in use
-Why az vm deallocate is used instead of only stopping
-Persistent resources that may still incur small charges
-
-**Next Steps**
-Next Steps
-Add/confirm jumpbox access path
-SSH to jumpbox
-Test hub-to-spoke connectivity
-Test spoke-to-spoke behavior
-Add custom NSG rules
-Add UDRs / NVA later
+### Deployment Issues
+This is where the messy stuff belongs: 
