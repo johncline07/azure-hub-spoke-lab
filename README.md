@@ -140,6 +140,16 @@ Test Linux VMs were added to each spoke to validate routing, security, and conne
 | `vm-spoke2` | `vnet-spoke2` | `snet-spoke2-workload` | `10.2.1.4` | Workload/test VM |
 | `jumpbox-vm` | `vnet-hub` | `snet-hub-services` | `10.0.1.4` | Management/jump host |
 
+### Machine-Specific SSH Keys and Terraform Portability
+
+Prior to creating the VMs, using pathexpand("~/.ssh/id_ed25519.pub") solved the SSH key path problem and made the project more portable across machines. However, each machine still used its own SSH public key.
+
+I created the VMs on my home machine, then later continued the project from my laptop. After pulling the project and initializing Terraform, terraform plan showed that all of the VMs would need to be replaced. Terraform detected that the SSH public key in the configuration was different from the key that had originally been used to create the VMs, and changing the admin_ssh_key forces VM replacement.
+
+I solved this by defining the VM SSH public key as a Terraform variable and storing the consistent key value in terraform.tfvars. This allowed both machines to evaluate the same VM configuration and eliminated the unnecessary destroy/recreate plan.
+
+**Takeaway:** Making a file path portable is not enough if the underlying value is still machine-specific. 
+
 **Configuration**
 Linux distribution / image
 x64 architecture
