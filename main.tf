@@ -165,7 +165,7 @@ resource "azurerm_linux_virtual_machine" "spoke1_vm" {
 
   admin_ssh_key {
     username   = "azureuser"
-    public_key = file(pathexpand("~/.ssh/id_ed25519.pub"))
+    public_key = var.vm_ssh_public_key
   }
 
   os_disk {
@@ -193,7 +193,7 @@ resource "azurerm_linux_virtual_machine" "spoke2_vm" {
 
   admin_ssh_key {
     username   = "azureuser"
-    public_key = file(pathexpand("~/.ssh/id_ed25519.pub"))
+    public_key = var.vm_ssh_public_key
   }
 
   os_disk {
@@ -221,7 +221,7 @@ resource "azurerm_linux_virtual_machine" "jumpbox_vm" {
 
   admin_ssh_key {
     username   = "azureuser"
-    public_key = file(pathexpand("~/.ssh/id_ed25519.pub"))
+    public_key = var.vm_ssh_public_key
   }
 
   os_disk {
