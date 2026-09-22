@@ -118,9 +118,23 @@ Github carries the code in a repository, keeping track of any changes to the cod
 - No public IP on spoke VMs
 - Jumpbox access method
 
+### VM SKU and Architecture Compatibility
+
+Test Linux VMs were added to each spoke to validate routing, security, and connectivity behavior. A separate jumpbox VM was deployed in the hub to provide a centralized management point without exposing the spoke workloads directly.
+
+| VM | VNet | Subnet | Private IP | Role |
+ | --- | --- | --- | --- | --- |
+| `vm-spoke1` | `vnet-spoke1` | `snet-spoke1-workload` | `10.1.1.4` | Workload/test VM |
+| `vm-spoke2` | `vnet-spoke2` | `snet-spoke2-workload` | `10.2.1.4` | Workload/test VM |
+| `jumpbox-vm` | `vnet-hub` | `snet-hub-services` | `10.0.1.4` | Management/jump host |
+
 ### Cost Management
 
 A stopped Azure virtual machine keeps its physical hardware reserved and continues billing for compute costs. On the other hand, deallocating a virtual machine releases the hardware and stops compute billing entirely. For cost management I am deallocating each VM when not testing/in-use.
+
+### Access 
+
+The jumpbox has a public IP. SSH to the jumpbox is restricted to my admin CIDR. The spoke VMs remain private and you use SSH ProxyJump through the hub to reach them. 
 
 ### Traffic Tests
 
@@ -156,16 +170,6 @@ The original VM configuration referenced a hard-coded public key path from one W
 
 Takeway: Infrastructure code should avoid machine-specific paths when the project is intended to be portable.
 
-### VM SKU and Architecture Compatibility
-
-Test Linux VMs were added to each spoke to validate routing, security, and connectivity behavior. A separate jumpbox VM was deployed in the hub to provide a centralized management point without exposing the spoke workloads directly.
-
-| VM | VNet | Subnet | Private IP | Role |
- | --- | --- | --- | --- | --- |
-| `vm-spoke1` | `vnet-spoke1` | `snet-spoke1-workload` | `10.1.1.4` | Workload/test VM |
-| `vm-spoke2` | `vnet-spoke2` | `snet-spoke2-workload` | `10.2.1.4` | Workload/test VM |
-| `jumpbox-vm` | `vnet-hub` | `snet-hub-services` | `10.0.1.4` | Management/jump host |
-
 ### Physical Machine-Specific SSH Keys and Terraform Portability
 
 Prior to creating the VMs, using pathexpand("~/.ssh/id_ed25519.pub") solved the SSH key path problem and made the project more portable across machines. However, each machine still used its own SSH public key.
@@ -176,12 +180,7 @@ I solved this by defining the VM SSH public key as a Terraform variable and stor
 
 **Takeaway:** Making a file path portable is not enough if the underlying value is still machine-specific.
 
-## Virtual Machine Deployment Issues
-
-### Deployment Issues
-This is where the messy stuff belongs: 
-
-#### Original B-series SKU unavailable
+### Virtual Machine Deployment Issues
 
 Arm64 VM vs x64 image mismatch
 Bpsv2 quota = 0
@@ -189,3 +188,31 @@ x64 B-series existed but was NotAvailableForSubscription
 Queried D-series SKUs
 Selected a D-series family with quota and x64 support
 Successfully deployed both spoke VMs and jumpbox
+
+### SSH Access Across Multiple Admin Machines
+
+**EDIT**
+
+Initially, I used one Terraform-managed SSH public key for the VMs.
+I made the path portable with `pathexpand()`, but that only solved the file-path problem.
+When I switched machines, each workstation had a different SSH keypair.
+Changing Terraform's admin_ssh_key to match the second machine caused Terraform to plan replacement of all existing VMs because that property is immutable/force-new.
+I first considered storing multiple admin public keys directly in the Terraform VM resource.
+That would still require replacing the already-created VMs, so I backed out that change.
+I kept the original provisioning public key in Terraform so the infrastructure remained stable.
+I generated separate SSH keypairs for the work and personal machines.
+I added each workstation's public key to the existing VMs after deployment using az vm user update.
+The private keys remain only on their respective machines.
+I then used the hub jumpbox and SSH ProxyJump to reach the private spoke VMs.
+
+**Takeaway:** Terraform provisioning credentials and ongoing administrator access do not necessarily need to be managed the same way. Keeping the original provisioning key stable avoided unnecessary VM replacement, while adding separate administrator public keys allowed each workstation to authenticate independently without sharing private keys.
+
+### Admin Access and Dynamic Public IPs
+
+**EDIT**
+
+Because the hub NSG currently allows:
+
+`current-public-IP/32 -> TCP/22 -> jumpbox`
+
+moving between home/work networks means admin_ip_cidr changes and requires another Terraform apply. That isn’t a mistake — it’s a consequence of the security design I chose. **Later discuss whether Bastion, VPN/private access, or another management approach is a better fit.**
