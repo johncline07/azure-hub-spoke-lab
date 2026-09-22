@@ -95,6 +95,29 @@ resource "azurerm_virtual_network_peering" "spoke2_to_hub" {
   remote_virtual_network_id = azurerm_virtual_network.hub.id
 }
 
+resource "azurerm_network_security_group" "hub" {
+  name                = "nsg-hub-services"
+  location            = azurerm_resource_group.hub_spoke.location
+  resource_group_name = azurerm_resource_group.hub_spoke.name
+
+  security_rule {
+    name                       = "Allow-SSH-From-Admin"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "22"
+    source_address_prefix      = var.admin_ip
+    destination_address_prefix = "*"
+  }
+}
+
+resource "azurerm_subnet_network_security_group_association" "hub" {
+  subnet_id                 = azurerm_subnet.hub_services.id
+  network_security_group_id = azurerm_network_security_group.hub.id
+}
+
 resource "azurerm_network_security_group" "spoke1" {
   name                = "nsg-spoke1-workload"
   location            = azurerm_resource_group.hub_spoke.location
@@ -150,8 +173,18 @@ resource "azurerm_network_interface" "jumpbox_vm" {
     name                          = "internal"
     subnet_id                     = azurerm_subnet.hub_services.id
     private_ip_address_allocation = "Dynamic"
+    public_ip_address_id          = azurerm_public_ip.jumpbox.id
   }
 }
+
+resource "azurerm_public_ip" "jumpbox" {
+  name                = "pip-jumpbox"
+  resource_group_name = azurerm_resource_group.hub_spoke.name
+  location            = azurerm_resource_group.hub_spoke.location
+  allocation_method   = "Static"
+  sku                 = "Standard"
+}
+
 
 resource "azurerm_linux_virtual_machine" "spoke1_vm" {
   name                = "vm-spoke1"

@@ -122,7 +122,9 @@ Github carries the code in a repository, keeping track of any changes to the cod
 
 A stopped Azure virtual machine keeps its physical hardware reserved and continues billing for compute costs. On the other hand, deallocating a virtual machine releases the hardware and stops compute billing entirely. For cost management I am deallocating each VM when not testing/in-use.
 
-### Next Steps
+### Traffic Tests
+
+Connectivity testing confirmed successful communication between the hub and each spoke in both directions. Direct communication between Spoke1 and Spoke2 failed as expected because Azure VNet peering is non-transitive.
 
 - SSH to jumpbox
 - Test hub-to-spoke connectivity
