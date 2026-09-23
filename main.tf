@@ -122,6 +122,18 @@ resource "azurerm_network_security_group" "spoke1" {
   name                = "nsg-spoke1-workload"
   location            = azurerm_resource_group.hub_spoke.location
   resource_group_name = azurerm_resource_group.hub_spoke.name
+
+  security_rule {
+    name                       = "allow-ssh-from-hub"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "22"
+    source_address_prefix      = "10.0.1.0/24"
+    destination_address_prefix = "*"
+  }
 }
 
 resource "azurerm_subnet_network_security_group_association" "spoke1" {
@@ -133,6 +145,18 @@ resource "azurerm_network_security_group" "spoke2" {
   name                = "nsg-spoke2-workload"
   location            = azurerm_resource_group.hub_spoke.location
   resource_group_name = azurerm_resource_group.hub_spoke.name
+
+  security_rule {
+    name                       = "allow-ssh-from-hub"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "22"
+    source_address_prefix      = "10.0.1.0/24"
+    destination_address_prefix = "*"
+  }
 }
 
 resource "azurerm_subnet_network_security_group_association" "spoke2" {
