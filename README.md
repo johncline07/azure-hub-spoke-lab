@@ -99,6 +99,8 @@ Github carries the code in a repository, keeping track of any changes to the cod
 - `terraform.tfvars` excluded from Git
 - SSH private keys excluded from Git
 
+Added explicit inbound NSG rules on both spoke workload subnets to allow SSH from the hub services subnet (10.0.1.0/24) on TCP/22. Verified SSH connectivity to both spoke VMs through the hub jumpbox after applying the changes.
+
 ### Planned
 
 - Storage account network restrictions
