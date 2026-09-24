@@ -62,10 +62,10 @@ flowchart TD
 
 | Network | Address Space | Subnet | Subnet CIDR | Host |
 |---|---|---|---|---|
-| Hub | `10.0.0.0/16` | Hub Services | `10.0.1.0/24` | Jumpbox `10.0.1.4` |
-| Hub | `10.0.0.0/16` | NVA | `10.0.2.0/24` | NVA `10.0.2.4` |
-| Spoke 1 | `10.1.0.0/16` | Workload | `10.1.1.0/24` | `vm-spoke1` `10.1.1.4` |
-| Spoke 2 | `10.2.0.0/16` | Workload | `10.2.1.0/24` | `vm-spoke2` `10.2.1.4` |
+| `Hub` | `10.0.0.0/16` | `Hub Services` | `10.0.1.0/24` | `Jumpbox` `10.0.1.4` |
+| `Hub` | `10.0.0.0/16` | `NVA` | `10.0.2.0/24` | `NVA` `10.0.2.4` |
+| `Spoke 1` | `10.1.0.0/16` | `Workload` | `10.1.1.0/24` | `vm-spoke1` `10.1.1.4` |
+| `Spoke 2` | `10.2.0.0/16` | `Workload` | `10.2.1.0/24` | `vm-spoke2` `10.2.1.4` |
 
 ## Infrastructure Deployed
 
@@ -149,6 +149,7 @@ Test Linux VMs were added to each spoke to validate routing, security, and conne
 | `vm-spoke1` | `vnet-spoke1` | `snet-spoke1-workload` | `10.1.1.4` | Workload/test VM |
 | `vm-spoke2` | `vnet-spoke2` | `snet-spoke2-workload` | `10.2.1.4` | Workload/test VM |
 | `jumpbox-vm` | `vnet-hub` | `snet-hub-services` | `10.0.1.4` | Management/jump host |
+| `hub-nva` | `vnet-hub` | `snet-hub-services` | `10.0.2.4` | NVA |
 
 ### Cost Management
 
@@ -215,13 +216,13 @@ Takeaway: by placing the shared-services subnet in the hub VNet, I observed non-
 
 ### Terraform State Across Multiple Machines
 
-One of the biggest takeaways from this project was the function of the tfstate file. I wrote about that extensivly above. If I'm honest, in my first terraform/azure project, I didn't notice the function of the state file. I operated that instance locally so I didn't notice, or even pay attention to, the state file--that project was mostly a first diving into Terraform. In this project, with the need of moving from one machine to another, I was forced to pay attention to it. So I dove in. I read profesional writing. I paid attention behavior. I moved from local to remote. I'm certain I still have plenty, if not all, to learn, but, I learned a lot in just changing the location of the tfstate file. This was a big win in my mind here.
+One of the biggest takeaways from this project was the function of the tfstate file. I wrote about that extensively above. If I'm honest, in my first terraform/azure project, I didn't notice the function of the state file. I operated that instance locally so I didn't notice, or even pay attention to, the state file--that project was mostly a first diving into Terraform. In this project, with the need of moving from one machine to another, I was forced to pay attention to it. So I dove in. I read professional writing. I paid attention behavior. I moved from local to remote. I'm certain I still have plenty, if not all, to learn, but, I learned a lot in just changing the location of the tfstate file. This was a big win in my mind here.
 
 Takeaway: Git synchronizes the configuration, but it does not synchronize Terraform state.
 
 ### Azure Storage RBAC
 
-**Note** Hit a 403 error during backend migration and the distinticion between being able to manage the storage account versus having blob data-plan permissions.
+**Note** Hit a 403 error during backend migration and the distinction between being able to manage the storage account versus having blob data-plan permissions.
 
 ### Portable SSH Key Paths
 
@@ -253,12 +254,12 @@ Successfully deployed both spoke VMs and jumpbox
 **EDIT**
 Initially, I used one Terraform-managed SSH public key for the VMs.
 I made the path portable with `pathexpand()`, but that only solved the file-path problem.
-When I switched machines, each workstation had a different SSH keypair.
+When I switched machines, each workstation had a different SSH key pair.
 Changing Terraform's admin_ssh_key to match the second machine caused Terraform to plan replacement of all existing VMs because that property is immutable/force-new.
 I first considered storing multiple admin public keys directly in the Terraform VM resource.
 That would still require replacing the already-created VMs, so I backed out that change.
 I kept the original provisioning public key in Terraform so the infrastructure remained stable.
-I generated separate SSH keypairs for the work and personal machines.
+I generated separate SSH key pairs for the work and personal machines.
 I added each workstation's public key to the existing VMs after deployment using az vm user update.
 The private keys remain only on their respective machines.
 I then used the hub jumpbox and SSH ProxyJump to reach the private spoke VMs.
