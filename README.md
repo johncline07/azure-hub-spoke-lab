@@ -134,7 +134,7 @@ Added explicit inbound NSG rules on both spoke workload subnets to allow SSH fro
 - x64 architecture
 - Standard_D2alds_v7
 - SSH key authentication
-- Dynamic private IP assignment
+- Dynamic private IP assignment, statically assigned IP for the NVA
 - No public IP on spoke VMs
 
 ### VM Inventory
@@ -146,7 +146,7 @@ Test Linux VMs were added to each spoke to validate routing, security, and conne
 | `vm-spoke1` | `vnet-spoke1` | `snet-spoke1-workload` | `10.1.1.4` | `Workload/test VM` |
 | `vm-spoke2` | `vnet-spoke2` | `snet-spoke2-workload` | `10.2.1.4` | `Workload/test VM` |
 | `jumpbox-vm` | `vnet-hub` | `snet-hub-services` | `10.0.1.4` | `Management/jump host` |
-| `hub-nva` | `vnet-hub` | `snet-nva` | `10.0.2.4` | `NVA` |
+| `nva-vm` | `vnet-hub` | `snet-nva` | `10.0.2.4` | `NVA` |
 
 ### Cost Management
 
@@ -154,7 +154,7 @@ A stopped Azure virtual machine keeps its physical hardware reserved and continu
 
 ### Access
 
-The jumpbox has a public IP. SSH to the jumpbox is restricted to my admin CIDR. The spoke VMs remain private and you use SSH ProxyJump through the hub to reach them.
+The jumpbox has a public IP. SSH to the jumpbox is restricted to my admin CIDR. The spoke VMs remain private and I use SSH ProxyJump through the hub to reach them.
 
 ### Network Virtual Appliance
 
@@ -253,7 +253,9 @@ With each workstation independently authorized, I configured SSH `ProxyJump` thr
 
 ### Architectural Discovery
 
-At the start of this project, I understood that hub-and-spoke networks were common enterprise solutions but I did not understand why that architecture is sometimes optimal over others. I imagine that sort of expertise comes with several years of experience making those decisions. This project helped me understand how to implement a hub-and-spoke network. Network segmentation is optimal in on-premises enterprise infrastructure. VLANs and separate subnets segment the network while ACLs, set on the router or firewall, filter out traffic. In hub-and-spoke architecture, the spokes are like VLANS, or segments. The NVA is like inter-VLAN routing. The jumpbox is the management segment. Having made this comparison, I'll add a quick caveat here: this lab built segmentation and inter-VLAN routing but not yet the ACL equivalency. A hub and spoke network, such as the one I developed here emulates a segmented on-premises network, abstracted through the cloud. When multiple teams or workloads share services (DNS, management access, logging, egress) it might be best to build those services in one place, rather than in every VNet. On the other hand, this can be more costly with more moving parts, latency for inter-spoke traffic, and potential bottlenecks. This configuration might be overkill if there's not a need for shared services, central inspection or there's only a single app in a VNet.
+At the start of this project, I understood that hub-and-spoke networks were common enterprise solutions but I did not understand why that architecture is sometimes optimal over others. I imagine that sort of expertise comes with several years of experience making those decisions. This project helped me understand how to implement a hub-and-spoke network. Network segmentation is optimal in on-premises enterprise infrastructure. 
+
+VLANs and separate subnets segment the network while ACLs, set on the router or firewall, filter out traffic. In hub-and-spoke architecture, the spokes are like VLANS, or segments. The NVA is like inter-VLAN routing. The jumpbox is the management segment. Having made this comparison, I'll add a quick caveat here: this lab built segmentation and inter-VLAN routing but not yet the ACL equivalency. A hub and spoke network, such as the one I developed here emulates a segmented on-premises network, abstracted through the cloud. When multiple teams or workloads share services (DNS, management access, logging, egress) it might be best to build those services in one place, rather than in every VNet. On the other hand, this can be more costly with more moving parts, latency for inter-spoke traffic, and potential bottlenecks. This configuration might be overkill if there's not a need for shared services, central inspection or there's only a single app in a VNet.
 
 ### Future Improvements and Next Steps
 
