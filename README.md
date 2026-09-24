@@ -6,51 +6,82 @@
 
 ## Overview
 
-This project implements a hub-and-spoke virtual network architecture in Microsoft Azure using Terraform and Azure CLI. The design uses a centralized hub VNet with two isolated spoke VNets, VNet peering, workload subnets, and NSGs to model a common enterprise cloud networking pattern.
+This project implements a hub-and-spoke network architecture in Microsoft Azure using Terraform and Azure CLI.
 
-The project is intended to build hands-on experience with Azure networking, infrastructure as code, remote Terraform state, and multi-machine workflows while applying routing and segmentation concepts developed through Network+ and CCNA study.
+The environment consists of a centralized hub VNet and two isolated spoke VNets. The hub provides shared management and routing services, including a jumpbox and Linux network virtual appliance (NVA). The spoke VNets contain private Linux workload VMs and use user-defined routes (UDRs) to send inter-spoke traffic through the NVA.
+
+I built this lab to gain hands-on experience with Azure networking and infrastructure as code while applying networking concepts from my Network+ and CCNA studies. The project evolved from basic VNet peering into a routed hub-and-spoke environment with remote Terraform state, custom NSG rules, private administrative access through a jumpbox, and controlled spoke-to-spoke transit.
 
 ## Architecture
 
-I created three separate VNets. The hub VNet uses the `10.0.0.0/16` address space and contains a `10.0.1.0/24` subnet for hub services. Spoke 1 uses `10.1.0.0/16` with a `10.1.1.0/24` workload subnet. Spoke 2 uses `10.2.0.0/16` with a `10.2.1.0/24` workload subnet. I configured VNet peering between the hub and each spoke in both directions.
+The environment contains three separate Azure VNets:
+
+- **Hub VNet:** `10.0.0.0/16`
+  - Hub services subnet: `10.0.1.0/24`
+  - NVA subnet: `10.0.2.0/24`
+- **Spoke 1 VNet:** `10.1.0.0/16`
+  - Workload subnet: `10.1.1.0/24`
+- **Spoke 2 VNet:** `10.2.0.0/16`
+  - Workload subnet: `10.2.1.0/24`
+
+The hub contains a jumpbox used for administrative access and a Linux NVA used for inter-spoke routing. Each spoke contains a private Linux VM with no public IP address.
+
+The hub is peered bidirectionally with each spoke. Because Azure VNet peering is non-transitive, Spoke 1 and Spoke 2 cannot communicate through the hub using peering alone.
+
+To enable controlled spoke-to-spoke communication, each workload subnet has a user-defined route for the opposite spoke's address space. The routes use the NVA at `10.0.2.4` as the next-hop virtual appliance.
 
 ```mermaid
 flowchart TD
-    Hub["Hub VNet<br/>10.0.0.0/16"]
-    Spoke1["Spoke 1<br/>10.1.0.0/16"]
-    Spoke2["Spoke 2<br/>10.2.0.0/16"]
+    Internet["Administrator"]
+    Jumpbox["Jumpbox<br/>10.0.1.4"]
+    NVA["Linux NVA<br/>10.0.2.4"]
 
-    Hub <--> Spoke1
-    Hub <--> Spoke2
+    subgraph Hub["Hub VNet - 10.0.0.0/16"]
+        Jumpbox
+        NVA
+    end
+
+    subgraph Spoke1["Spoke 1 - 10.1.0.0/16"]
+        VM1["vm-spoke1<br/>10.1.1.4"]
+    end
+
+    subgraph Spoke2["Spoke 2 - 10.2.0.0/16"]
+        VM2["vm-spoke2<br/>10.2.1.4"]
+    end
 ```
 
-I created NSGs and associated them with each spoke workload subnet. At this point they use Azure’s default NSG rules. Spoke-to-spoke transit is not currently available because Azure VNet peering is non-transitive; later in the project I plan to control this traffic more deliberately with NSG rules and routing.
-
->**Note:** VNet peering is non-transitive. Spoke 1 cannot automatically route through the hub to Spoke 2.
+    Internet --> Jumpbox
+    Jumpbox --> VM1
+    Jumpbox --> VM2
+    VM1 --> NVA
+    NVA --> VM2
+    VM2 --> NVA
+    NVA --> VM1
 
 ## Addressing Plan
 
-| Network | Address Space | Subnet | Subnet CIDR |
-| --- | --- | --- | --- |
-| Hub | `10.0.0.0/16` | Hub Services | `10.0.1.0/24` |
-| Spoke 1 | `10.1.0.0/16` | Workload | `10.1.1.0/24` |
-| Spoke 2 | `10.2.0.0/16` | Workload | `10.2.1.0/24` |
+| Network | Address Space | Subnet | Subnet CIDR | Host |
+|---|---|---|---|---|
+| Hub | `10.0.0.0/16` | Hub Services | `10.0.1.0/24` | Jumpbox `10.0.1.4` |
+| Hub | `10.0.0.0/16` | NVA | `10.0.2.0/24` | NVA `10.0.2.4` |
+| Spoke 1 | `10.1.0.0/16` | Workload | `10.1.1.0/24` | `vm-spoke1` `10.1.1.4` |
+| Spoke 2 | `10.2.0.0/16` | Workload | `10.2.1.0/24` | `vm-spoke2` `10.2.1.4` |
 
-## Terraform Resources Created
+## Infrastructure Deployed
 
-- [x] Resource group
-- [x] Hub VNet
-- [x] Hub services subnet
-- [x] Spoke 1 VNet
-- [x] Spoke 1 workload subnet
-- [x] Spoke 2 VNet
-- [x] Spoke 2 workload subnet
-- [x] Hub-to-spoke VNet peering
-- [x] Network Security Groups
-- [x] NSG/subnet associations
-- [x] Linux test VMs
-- [x] User-defined routes
-- [x] Network virtual appliance
+Terraform provisions:
+
+- Azure resource group
+- Hub and spoke virtual networks
+- Hub services, NVA, and spoke workload subnets
+- Bidirectional hub-to-spoke VNet peerings
+- Network Security Groups and subnet associations
+- Linux jumpbox
+- Two private spoke workload VMs
+- Linux network virtual appliance
+- User-defined route tables
+- Route table/subnet associations
+- Public IP for controlled jumpbox access
 
 ## Remote State
 
@@ -85,9 +116,7 @@ terraform apply
 
 Github carries the code in a repository, keeping track of any changes to the code. Azure storage carries the state file allowing terraform to reference state from either machine.
 
-## Security
-
-### Implemented
+## Implemented Controls
 
 - NSGs associated with workload subnets
 - Terraform state stored outside the workload resource group
@@ -101,16 +130,7 @@ Github carries the code in a repository, keeping track of any changes to the cod
 
 Added explicit inbound NSG rules on both spoke workload subnets to allow SSH from the hub services subnet (10.0.1.0/24) on TCP/22. Verified SSH connectivity to both spoke VMs through the hub jumpbox after applying the changes.
 
-### Planned
-
-- Storage account network restrictions
-- Additional NSG rules
-- Centralized traffic inspection
-- Route control between spokes
-
 ## Virtual Machine Configuration
-
-### Configuration
 
 - Ubuntu 22.04 LTS Generation 2 Linux (0001-com-ubuntu-server-jammy, 22_04-lts-gen2)
 - x64 architecture
@@ -136,28 +156,54 @@ A stopped Azure virtual machine keeps its physical hardware reserved and continu
 
 ### Access
 
-The jumpbox has a public IP. SSH to the jumpbox is restricted to my admin CIDR. The spoke VMs remain private and you use SSH ProxyJump through the hub to reach them. 
+The jumpbox has a public IP. SSH to the jumpbox is restricted to my admin CIDR. The spoke VMs remain private and you use SSH ProxyJump through the hub to reach them.
 
-### Traffic Tests
+## Connectivity and Route Validation
 
-SSH to jumpbox is successful from both of my physical machines after a tremendous amount of troubleshooting SSH handling.
+Initial testing confirmed connectivity between the hub and each spoke in both directions. Direct communication between Spoke 1 and Spoke 2 failed as expected because Azure VNet peering is non-transitive.
 
-Connectivity testing confirmed successful communication between the hub and each spoke in both directions. Direct communication between Spoke1 and Spoke2 failed as expected because Azure VNet peering is non-transitive.
+After deploying the NVA and adding UDRs, spoke-to-spoke connectivity still failed even though both spoke VMs could reach the jumpbox and NVA. The peering configuration did not yet permit forwarded traffic.
 
-Following deployment of the NVA and UDRs, connectivity tests between Spoke1 and Spoke2 still failed bidirectionally, although both spokes could successfully reach the jumpbox and NVA private IPs. Adding allow_forwarded_traffic = true to the VNet peering configurations allowed spoke-to-spoke traffic to traverse the hub NVA successfully. This demonstrated that configuring an NVA and UDRs alone is not sufficient; the peering relationships must also explicitly permit forwarded traffic.
+Adding:
 
-Packet capture on the NVA using tcpdump confirmed ICMP traffic from both spokes traversed the NVA in both directions, validating that the UDRs and forwarded-traffic peering settings were directing spoke-to-spoke traffic through the hub as intended.
+`allow_forwarded_traffic = true`
 
-![alt text](image-2.png)
-**Figure 1:** packet capture from NVA using tcpdump proving NVA routing/forwarding.
+to the VNet peering configurations allowed transit traffic forwarded by the NVA to cross the peering connections successfully.
+
+Final testing confirmed:
+
+- Hub → Spoke 1: successful
+- Hub → Spoke 2: successful
+- Spoke 1 → Spoke 2 through NVA: successful
+- Spoke 2 → Spoke 1 through NVA: successful
+
+Effective route inspection showed the expected user-defined routes:
+
+- Spoke 1: `10.2.0.0/16` → `VirtualAppliance` → `10.0.2.4`
+- Spoke 2: `10.1.0.0/16` → `VirtualAppliance` → `10.0.2.4`
+
+Packet capture using `tcpdump` on the NVA also confirmed ICMP traffic traversing the appliance in both directions.
+
+<img src="tcpdump.png" width="600">
+
+*Figure 1 — Packet capture on the NVA showing ICMP traffic between spoke workloads.*
 
 Effective route inspection on both spoke VM NICs confirmed active user-defined routes for the opposite spoke address space, with VirtualAppliance as the next-hop type and 10.0.2.4 as the next-hop IP. Combined with packet captures on the NVA, this verified that spoke-to-spoke traffic was intentionally routed through the hub NVA. 
 
-![alt text](image.png)
-**Figure 2:** routing table proving effective routing from spoke2 to spoke1.
-
-![alt text](image-1.png)
-**Figure3:** routing table proving effective routing from spoke1 to spoke2.
+<table>
+  <tr>
+    <td>
+      <img src="spoke1-route-table.png" width="350">
+      <br>
+      <em>Spoke 1 → Spoke 2 via NVA</em>
+    </td>
+    <td>
+      <img src="spoke2-route-table.png" width="350">
+      <br>
+      <em>Spoke 2 → Spoke 1 via NVA</em>
+    </td>
+  </tr>
+</table>
 
 ## Issues and Lessons Learned
 
@@ -227,3 +273,13 @@ Because the hub NSG currently allows:
 `current-public-IP/32 -> TCP/22 -> jumpbox`
 
 moving between home/work networks means admin_ip_cidr changes and requires another Terraform apply. That isn’t a mistake — it’s a consequence of the security design I chose. **Later discuss whether Bastion, VPN/private access, or another management approach is a better fit.**
+
+### Connectivity
+
+SSH to jumpbox is successful from both of my physical machines after a tremendous amount of troubleshooting SSH handling.
+
+Connectivity testing confirmed successful communication between the hub and each spoke in both directions. Direct communication between Spoke1 and Spoke2 failed as expected because Azure VNet peering is non-transitive.
+
+Following deployment of the NVA and UDRs, connectivity tests between Spoke1 and Spoke2 still failed bidirectionally, although both spokes could successfully reach the jumpbox and NVA private IPs. Adding allow_forwarded_traffic = true to the VNet peering configurations allowed spoke-to-spoke traffic to traverse the hub NVA successfully. This demonstrated that configuring an NVA and UDRs alone is not sufficient; the peering relationships must also explicitly permit forwarded traffic.
+
+Packet capture on the NVA using tcpdump confirmed ICMP traffic from both spokes traversed the NVA in both directions, validating that the UDRs and forwarded-traffic peering settings were directing spoke-to-spoke traffic through the hub as intended.
