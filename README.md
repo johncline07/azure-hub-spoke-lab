@@ -49,8 +49,8 @@ I created NSGs and associated them with each spoke workload subnet. At this poin
 - [x] Network Security Groups
 - [x] NSG/subnet associations
 - [x] Linux test VMs
-- [ ] User-defined routes
-- [ ] Network virtual appliance
+- [x] User-defined routes
+- [x] Network virtual appliance
 
 ## Remote State
 
@@ -134,19 +134,24 @@ Test Linux VMs were added to each spoke to validate routing, security, and conne
 
 A stopped Azure virtual machine keeps its physical hardware reserved and continues billing for compute costs. On the other hand, deallocating a virtual machine releases the hardware and stops compute billing entirely. For cost management I am deallocating each VM when not testing/in-use.
 
-### Access 
+### Access
 
 The jumpbox has a public IP. SSH to the jumpbox is restricted to my admin CIDR. The spoke VMs remain private and you use SSH ProxyJump through the hub to reach them. 
 
 ### Traffic Tests
 
+SSH to jumpbox is successful from both of my physical machines after a tremendous amount of troubleshooting SSH handling.
+
 Connectivity testing confirmed successful communication between the hub and each spoke in both directions. Direct communication between Spoke1 and Spoke2 failed as expected because Azure VNet peering is non-transitive.
 
-- SSH to jumpbox
-- Test hub-to-spoke connectivity
-- Test spoke-to-spoke behavior
-- Add custom NSG rules
-- Add UDRs / NVA later
+Following deployment of the NVA and UDRs, connectivity tests between Spoke1 and Spoke2 still failed bidirectionally, although both spokes could successfully reach the jumpbox and NVA private IPs. Adding allow_forwarded_traffic = true to the VNet peering configurations allowed spoke-to-spoke traffic to traverse the hub NVA successfully. This demonstrated that configuring an NVA and UDRs alone is not sufficient; the peering relationships must also explicitly permit forwarded traffic.
+
+Packet capture on the NVA using tcpdump confirmed ICMP traffic from both spokes traversed the NVA in both directions, validating that the UDRs and forwarded-traffic peering settings were directing spoke-to-spoke traffic through the hub as intended.
+
+Effective route inspection on both spoke VM NICs confirmed active user-defined routes for the opposite spoke address space, with VirtualAppliance as the next-hop type and 10.0.2.4 as the next-hop IP. Combined with packet captures on the NVA, this verified that spoke-to-spoke traffic was intentionally routed through the hub NVA. 
+
+![alt text](image.png)
+![alt text](image-1.png)
 
 ## Issues and Lessons Learned
 
@@ -194,7 +199,6 @@ Successfully deployed both spoke VMs and jumpbox
 ### SSH Access Across Multiple Admin Machines
 
 **EDIT**
-
 Initially, I used one Terraform-managed SSH public key for the VMs.
 I made the path portable with `pathexpand()`, but that only solved the file-path problem.
 When I switched machines, each workstation had a different SSH keypair.
@@ -212,7 +216,6 @@ I then used the hub jumpbox and SSH ProxyJump to reach the private spoke VMs.
 ### Admin Access and Dynamic Public IPs
 
 **EDIT**
-
 Because the hub NSG currently allows:
 
 `current-public-IP/32 -> TCP/22 -> jumpbox`
