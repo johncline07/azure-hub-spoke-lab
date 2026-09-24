@@ -146,10 +146,10 @@ Test Linux VMs were added to each spoke to validate routing, security, and conne
 
 | VM | VNet | Subnet | Private IP | Role |
  | --- | --- | --- | --- | --- |
-| `vm-spoke1` | `vnet-spoke1` | `snet-spoke1-workload` | `10.1.1.4` | Workload/test VM |
-| `vm-spoke2` | `vnet-spoke2` | `snet-spoke2-workload` | `10.2.1.4` | Workload/test VM |
-| `jumpbox-vm` | `vnet-hub` | `snet-hub-services` | `10.0.1.4` | Management/jump host |
-| `hub-nva` | `vnet-hub` | `snet-hub-services` | `10.0.2.4` | NVA |
+| `vm-spoke1` | `vnet-spoke1` | `snet-spoke1-workload` | `10.1.1.4` | `Workload/test VM` |
+| `vm-spoke2` | `vnet-spoke2` | `snet-spoke2-workload` | `10.2.1.4` | `Workload/test VM` |
+| `jumpbox-vm` | `vnet-hub` | `snet-hub-services` | `10.0.1.4` | `Management/jump host` |
+| `hub-nva` | `vnet-hub` | `snet-hub-services` | `10.0.2.4` | `NVA` |
 
 ### Cost Management
 
