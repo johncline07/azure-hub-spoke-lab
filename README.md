@@ -84,9 +84,7 @@ Terraform provisions:
 
 ## Remote State
 
-I divided the work between two different physical machines. This presented an issue with repository and local state. Local state is good for small projects/experiments such as this, but I wanted experience working with the Terraform state file remotely. The state file is Terraform's brain or memory, keeping track of your infrastructure. It allows Terraform to know what to create, update, or delete based on your declared infrastructure configuration. When you run Terraform commands such as `terraform plan` or `terraform apply`, **terraform** references the state file to determine what is already created, what needs to be destroyed or changed by keeping track of resources created, resource IDs and metadata, relationships and dependencies between resources, and outputs of resources.
-
-Local state works well for small experiments, but it becomes awkward when moving between machines or collaborating with other people because the authoritative state file exists on one filesystem. A remote backend gives each authorized machine access to the same state and supports state locking during Terraform operations.
+I divided the work between two different physical machines. This presented an issue with repository and local state. Local state is good for small projects/experiments such as this, but it becomes awkward when moving between machines. The state file is Terraform's brain or memory, keeping track of your infrastructure. It allows Terraform to know what to create, update, or delete based on your declared infrastructure configuration. When you run Terraform commands such as `terraform plan` or `terraform apply`, **terraform** references the state file to determine what is already created, what needs to be destroyed or changed by keeping track of resources created, resource IDs and metadata, relationships and dependencies between resources, and outputs of resources.
 
 In this project I created a separate Azure resource group, storage account, and tfstate blob container using Azure CLI. I then configured the Terraform azurerm backend and migrated the original local state into Azure Storage.
 
@@ -113,7 +111,7 @@ terraform plan
 terraform apply
 ```
 
-GitHub carries the code in a repository, keeping track of any changes to the code. Azure storage carries the state file allowing terraform to reference state from either machine.
+GitHub carries the code in a repository, keeping track of any changes to the code. Azure storage carries the state file allowing terraform to reference state from either machine. It's worth mentioning that terraform.tfvars is excluded from the initial git push because it's included in the .gitignore, therefore a git pull cannot place it on another machine. I created a matching .tfvars file on the opposing machine. 
 
 ## Implemented Controls
 
@@ -160,9 +158,7 @@ The jumpbox has a public IP. SSH to the jumpbox is restricted to my admin CIDR. 
 
 ### Network Virtual Appliance
 
-An Azure network virtual appliance (NVA) is a specialized virtual machine that controls, inspects, and optimizes network traffic routing between security zones or networks. They act as next generation firewalls (NGFW) that routes, forwards and filters inbound and outbound traffic at two levels: Azure config and in the Linux kernel. 
-
-A common deployment: manually configuring a custom Virtual Network that uses User Defined Routes (UDR). That is how this NVA was configured. I deployed an NVA with the same VM and linux configuration as the jumpbox, spoke1, and spoke2. A linux NVA needs IP forwarding enabled on the Azure NIC and in the OS configuration.
+An NVA is a VM that forwards traffic between networks in place of a native Azure service. Commercial NVAs add firewall and inspection features. Mine is a plain Linux VM doing routing only. To act as a transit router, it needs IP forwarding enabled in two places:
 
 On the Azure NIC:
   - Azure NIC: `ip_forwarding_enabled = true`
@@ -217,17 +213,17 @@ Packet capture using `tcpdump` on the NVA also confirmed ICMP traffic traversing
   </tr>
 </table>
 
-**Scope and Limits: the NVA forwards traffic only; filtering (iptables, Azure firewall) is a possible next step from here.**
+**Scope and Limits: the NVA forwards traffic only; filtering (iptables, Azure Firewall) is a possible next step from here.**
 
 ## Issues and Lessons Learned
 
 ### Terraform State Across Multiple Machines
 
-One of the biggest takeaways from this project was the function of the tfstate file. I wrote about that extensively above. If I'm honest, in my first terraform/azure project, I didn't notice the function of the state file. I operated that instance locally so I didn't notice, or even pay attention to, the state file--that project was mostly a first diving into Terraform. In this project, with the need of moving from one machine to another, I was forced to pay attention to it. So I dove in. I read professional writing. I paid attention behavior. I moved from local to remote. I'm certain I still have plenty, if not all, to learn, but, I learned a lot in just changing the location of the tfstate file. This was a big win in my mind here. Git synchronizes the configuration, but it does not synchronize Terraform state.
+One of the biggest takeaways from this project was the function of the tfstate file. I wrote about that extensively above. If I'm honest, in my first terraform/azure project, I didn't notice the function of the state file. I operated that instance locally so I didn't notice the state file or observe it's functionality. In this project, with the need of moving from one machine to another, I was forced to see it. I paid attention to it's behavior. I moved from local to remote. I'm certain I still have plenty, if not all, to learn, but, I learned a lot in just changing the location of the tfstate file. This was a big win in my mind here. Git synchronizes the configuration, but it does not synchronize Terraform state.
 
 ### Azure Storage RBAC
 
-**Note** Hit a 403 error during backend migration and the distinction between being able to manage the storage account versus having blob data-plane permissions.
+Hit a 403 during backend migration. I could manage the storage account (management plane) but had no blob data-plane permissions. Assigning Storage Blob Data Contributor fixed it.
 
 ### SSH Key Portability and Multi-Machine Access
 
@@ -255,14 +251,16 @@ With each workstation independently authorized, I configured SSH `ProxyJump` thr
 
 **Takeaway:** Making a file path portable does not make the underlying value portable. Terraform provisioning credentials and day-to-day administrator access can be managed separately: keeping the provisioning key stable preserved infrastructure state, while per-machine administrator keys allowed secure access without sharing private keys.
 
+### Architectural Discovery
+
+At the start of this project, I understood that hub-and-spoke networks were common enterprise solutions but I did not understand why that architecture is sometimes optimal over others. I imagine that sort of expertise comes with several years of experience making those decisions. This project helped me understand how to implement a hub-and-spoke network. Network segmentation is optimal in on-premises enterprise infrastructure. VLANs and separate subnets segment the network while ACLs, set on the router or firewall, filter out traffic. In hub-and-spoke architecture, the spokes are like VLANS, or segments. The NVA is like inter-VLAN routing. The jumpbox is the management segment. Having made this comparison, I'll add a quick caveat here: this lab built segmentation and inter-VLAN routing but not yet the ACL equivalency. A hub and spoke network, such as the one I developed here emulates a segmented on-premises network, abstracted through the cloud. When multiple teams or workloads share services (DNS, management access, logging, egress) it might be best to build those services in one place, rather than in every VNet. On the other hand, this can be more costly with more moving parts, latency for inter-spoke traffic, and potential bottlenecks. This configuration might be overkill if there's not a need for shared services, central inspection or there's only a single app in a VNet.
+
 ### Future Improvements and Next Steps
 
 Because the hub NSG currently allows:
 
 `current-public-IP/32 -> TCP/22 -> jumpbox`
 
-moving between home/work networks means admin_ip_cidr changes and requires another Terraform apply. That isn’t a mistake — it’s a consequence of the security design I chose. Azure Bastion, VPN/private access, or another management might be a better approach to emulating a production project with multiple-machine access.
+moving between home/work networks means admin_ip_cidr changes and requires another Terraform apply, a consequence of the security design I chose. Azure Bastion, VPN/private access, or another management method might be a better approach to emulating a production project with multiple-machine access.
 
-### Architectural Discovery
-
-At the start of this project, I understood that hub-and-spoke networks were common enterprise solutions but I did not understand why that architecture is sometimes optimal over others. I imagine that sort of expertise comes with several years of experience making those decisions. This project helped me understand how to implement a hub-and-spoke network. Network segmentation is optimal in on-premises enterprise infrastructure. VLANs and separate subnets segment the network while ACLs, set on the router or firewall, filter out traffic. A hub and spoke network, such as the one I developed here emulates a segmented on-premises network, abstracted through the cloud. When multiple teams or workloads share services (DNS, management access, logging, egress) and you want one place to apply routing and inspection instead of rebuilding those in every VNet, you should opt for this type of configuration. That's what it buys; it costs more moving parts such as peering, NVAs, UDRs, or a firewall. It also inflicts latency for spoke-to-spoke traffic through extra hops, and a possible bottleneck at the hub. It also costs more money for the appliance itself.
+Other improvements might include NVA filtering plus explicit NSG rules for spoke isolation, a Bastion or private access for the jumpbox
