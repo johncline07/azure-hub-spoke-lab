@@ -148,6 +148,8 @@ Following deployment of the NVA and UDRs, connectivity tests between Spoke1 and 
 
 Packet capture on the NVA using tcpdump confirmed ICMP traffic from both spokes traversed the NVA in both directions, validating that the UDRs and forwarded-traffic peering settings were directing spoke-to-spoke traffic through the hub as intended.
 
+![alt text](image-2.png)
+
 Effective route inspection on both spoke VM NICs confirmed active user-defined routes for the opposite spoke address space, with VirtualAppliance as the next-hop type and 10.0.2.4 as the next-hop IP. Combined with packet captures on the NVA, this verified that spoke-to-spoke traffic was intentionally routed through the hub NVA. 
 
 ![alt text](image.png)
