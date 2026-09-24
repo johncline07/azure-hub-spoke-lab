@@ -48,8 +48,6 @@ flowchart TD
     subgraph Spoke2["Spoke 2 - 10.2.0.0/16"]
         VM2["vm-spoke2<br/>10.2.1.4"]
     end
-```
-
     Internet --> Jumpbox
     Jumpbox --> VM1
     Jumpbox --> VM2
@@ -57,6 +55,9 @@ flowchart TD
     NVA --> VM2
     VM2 --> NVA
     NVA --> VM1
+```
+
+
 
 ## Addressing Plan
 
@@ -85,7 +86,7 @@ Terraform provisions:
 
 ## Remote State
 
-I divided the work between two different physical machines. This presented an issue with repository and local state. Local state is good for small projects/experiments such as this, but I wanted experience with Git CI/CD actions and the opportunity to store the Terraform state file remotely. The state file is Terraform's brain or memory, keeping track of your infrastructure. It allows Terraform to know what to create, update, or delete based on your declared infrastructure configuration. When you run Terraform commands such as `terraform plan` or `terraform apply`, **terraform** references the state file to determine what is already created, what needs to be destroyed or changed by keeping track of resources created, resource IDs and metadata, relationships and dependencies between resources, and outputs of resources.
+I divided the work between two different physical machines. This presented an issue with repository and local state. Local state is good for small projects/experiments such as this, but I wanted experience working with the Terraform state file remotely. The state file is Terraform's brain or memory, keeping track of your infrastructure. It allows Terraform to know what to create, update, or delete based on your declared infrastructure configuration. When you run Terraform commands such as `terraform plan` or `terraform apply`, **terraform** references the state file to determine what is already created, what needs to be destroyed or changed by keeping track of resources created, resource IDs and metadata, relationships and dependencies between resources, and outputs of resources.
 
 Local state works well for small experiments, but it becomes awkward when moving between machines or collaborating with other people because the authoritative state file exists on one filesystem. A remote backend gives each authorized machine access to the same state and supports state locking during Terraform operations.
 
@@ -149,7 +150,7 @@ Test Linux VMs were added to each spoke to validate routing, security, and conne
 | `vm-spoke1` | `vnet-spoke1` | `snet-spoke1-workload` | `10.1.1.4` | `Workload/test VM` |
 | `vm-spoke2` | `vnet-spoke2` | `snet-spoke2-workload` | `10.2.1.4` | `Workload/test VM` |
 | `jumpbox-vm` | `vnet-hub` | `snet-hub-services` | `10.0.1.4` | `Management/jump host` |
-| `hub-nva` | `vnet-hub` | `snet-hub-services` | `10.0.2.4` | `NVA` |
+| `hub-nva` | `vnet-hub` | `snet-nva` | `10.0.2.4` | `NVA` |
 
 ### Cost Management
 
@@ -158,6 +159,18 @@ A stopped Azure virtual machine keeps its physical hardware reserved and continu
 ### Access
 
 The jumpbox has a public IP. SSH to the jumpbox is restricted to my admin CIDR. The spoke VMs remain private and you use SSH ProxyJump through the hub to reach them.
+
+### Network Virtual Appliance
+
+An Azure network virtual appliance (NVA) is a specialized virtual machine that controls, inspects, and optimizes network traffic routing between security zones or networks. They act as next generation firewalls (NGFW) that routes, forwards and filters inbound and outbound traffic at two levels: Azure config and in the Linux Kernal. A common deployment manually configuring into a custom Virtual Network using User Defined Routes (UDR). That is how this NVA was configured. I deployed an NVA with the same VM and linux configuration as the jumpbox, spoke1, and spoke2. A linux NVA needs IP forwarding enabled on the Azure NIC and in the OS configuration.
+
+On the Azure NIC:
+  - Azure NIC: `ip_forwarding_enabled = true`
+
+And, in the Linux OS:
+  - Linux kernel: `net.ipv4.ip_forward = 1`
+
+Both settings were required before the VM could function as a transit router between the spoke networks.
 
 ## Connectivity and Route Validation
 
@@ -206,13 +219,15 @@ Effective route inspection on both spoke VM NICs confirmed active user-defined r
   </tr>
 </table>
 
+**Scope and Limits: the NVA forwards traffic only; filtering (iptables, Azure firewall) is a possible next step from here, however, this lab is complete as it stands.**
+
 ## Issues and Lessons Learned
 
 ### Architecture Issues
 
 Upon initiating this project, I understood that hub-and-spoke networks were common enterprise solutions but I did not understand why that architecture is sometimes optimal over others. I imagine that sort of expertise comes with several years of experience making decisions such as that. This project helped me understand how to implement a hub-and-spoke network. However, following an established architecture is different from independently selecting that architecture. I can now explain how the VNets, subnets, peering connections, and security controls fit together, but I am continuing to develop my understanding of when hub-and-spoke is preferable to simpler alternatives and what tradeoffs justify its added complexity.
 
-Takeaway: by placing the shared-services subnet in the hub VNet, I observed non-transitory vnet peering. The spoke VNets can reach shared resources through the hub. Centralizing shared services reduces duplication and creates a common point for security and routing controls.
+Takeaway: by placing the shared-services subnet in the hub VNet, I observed non-transitive vnet peering. The spoke VNets can reach shared resources through the hub. Centralizing shared services reduces duplication and creates a common point for security and routing controls.
 
 ### Terraform State Across Multiple Machines
 
@@ -228,7 +243,7 @@ Takeaway: Git synchronizes the configuration, but it does not synchronize Terraf
 
 The original VM configuration referenced a hard-coded public key path from one WSL machine instance. WHen I moved the project to the second system with the use of remote state, Terraform failed because that path did not exist. I replaced the absolute path with `pathexpand("~/.ssh/id_ed25519.pub")`, allowing each machine to resolve the key from its own home directory.
 
-Takeway: Infrastructure code should avoid machine-specific paths when the project is intended to be portable.
+Takeaway: Infrastructure code should avoid machine-specific paths when the project is intended to be portable.
 
 ### Physical Machine-Specific SSH Keys and Terraform Portability
 
@@ -275,7 +290,7 @@ Because the hub NSG currently allows:
 
 moving between home/work networks means admin_ip_cidr changes and requires another Terraform apply. That isn’t a mistake — it’s a consequence of the security design I chose. **Later discuss whether Bastion, VPN/private access, or another management approach is a better fit.**
 
-### Connectivity
+### Testing traffic
 
 SSH to jumpbox is successful from both of my physical machines after a tremendous amount of troubleshooting SSH handling.
 
