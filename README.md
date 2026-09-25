@@ -257,12 +257,18 @@ At the start of this project, I understood that hub-and-spoke networks were comm
 
 VLANs and separate subnets segment the network while ACLs, set on the router or firewall, filter out traffic. In hub-and-spoke architecture, the spokes are like VLANS, or segments. The NVA is like inter-VLAN routing. The jumpbox is the management segment. Having made this comparison, I'll add a quick caveat here: this lab built segmentation and inter-VLAN routing but not yet the ACL equivalency. A hub and spoke network, such as the one I developed here emulates a segmented on-premises network, abstracted through the cloud. When multiple teams or workloads share services (DNS, management access, logging, egress) it might be best to build those services in one place, rather than in every VNet. On the other hand, this can be more costly with more moving parts, latency for inter-spoke traffic, and potential bottlenecks. This configuration might be overkill if there's not a need for shared services, central inspection or there's only a single app in a VNet.
 
-### Future Improvements and Next Steps
+## Future Improvements and Next Steps
 
 Because the hub NSG currently allows:
 
-`current-public-IP/32 -> TCP/22 -> jumpbox`
+current-public-IP/32 -> TCP/22 -> jumpbox
 
-moving between home/work networks means admin_ip_cidr changes and requires another Terraform apply, a consequence of the security design I chose. Azure Bastion, VPN/private access, or another management method might be a better approach to emulating a production project with multiple-machine access.
+moving between home and work networks changes my public IP and requires another Terraform apply to update admin_ip_cidr. That's a consequence of the security design, not a bug, but it doesn't scale to a real admin workflow.
 
-Other improvements might include NVA filtering plus explicit NSG rules for spoke isolation, a Bastion or private access for the jumpbox
+A few areas I'd extend next:
+
+**NVA filtering**. The NVA currently forwards traffic without inspecting it, and the default NSG rules let the spokes reach each other regardless. A next step would be adding stateful iptables rules on the NVA's FORWARD chain (the chain that handles transit traffic, as opposed to INPUT, which handles traffic addressed to the NVA itself) plus explicit NSG rules to restrict which ports the spokes can reach across the peering. This would turn the lab from a routing demo into an actual segmentation control.
+
+**Admin access**. Azure Bastion or a VPN/private-access approach would remove the need for a public IP and a manually maintained IP allowlist on the jumpbox, which is closer to how I'd expect this to run in production.
+
+**CI/CD**. A GitHub Actions workflow using OIDC federation to Azure, so no long-lived credentials are stored, running terraform fmt, validate, and plan on pull requests, with apply gated behind manual approval. 
