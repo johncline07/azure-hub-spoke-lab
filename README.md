@@ -271,4 +271,4 @@ A few areas I'd extend next:
 
 **Admin access**. Azure Bastion or a VPN/private-access approach would remove the need for a public IP and a manually maintained IP allowlist on the jumpbox, which is closer to how I'd expect this to run in production.
 
-**CI/CD**. A GitHub Actions workflow using OIDC federation to Azure, so no long-lived credentials are stored, running terraform fmt, validate, and plan on pull requests, with apply gated behind manual approval. 
+**CI/CD**. A GitHub Actions workflow using OIDC federation to Azure, so no long-lived credentials are stored, running terraform fmt, validate, and plan on pull requests, with apply gated behind manual approval.
